@@ -1,0 +1,114 @@
+---
+author: "Денис Ужва"
+title: "Практика 3 (доверительные интервалы и сравнение однородности)"
+output: html_document
+---
+
+
+
+
+# Доверительные интервалы
+
+
+## 1 задача
+
+Загрузим данные и параметры:
+
+```{r t1Params}
+nS <- 2000
+p1 <- 0.36
+p2 <- 1 - p1
+confProb <- 0.95
+```
+
+Найдём соответствующий доверительный интервал для доли $p_1$:
+
+```{r t1E}
+zCrit <- qnorm((1-confProb)/2, lower.tail = FALSE, log.p = FALSE)
+print(zCrit)
+eValue <- zCrit * sqrt((p1*p2)/nS)
+print(eValue)
+print(p1 - eValue)
+print(p1 + eValue)
+```
+
+Таким образом, доверительный интервал для доли $p_1$ следующий: $p_1 - E \leq p_1 \leq p_1 + E \implies 0.34 \leq p_1 \leq 0.38$.
+
+
+## 2 задача
+
+Загрузим данные и параметры:
+
+```{r t2Params}
+sampSet <- c(124, 124, 145, 132, 123, 124, 122, 141, 133, 122)
+nS <- length(sampSet)
+confProb <- 0.95
+```
+
+Найдём доверительный интервал для среднего:
+
+```{r t2E}
+zCrit <- qnorm((1-confProb)/2, lower.tail = FALSE, log.p = FALSE)
+print(zCrit)
+xA1 <- mean(sampSet)
+xSem <- sd(sampSet) / sqrt(nS)
+eValue <- zCrit * xSem
+print(eValue)
+print(xA1 - eValue)
+print(xA1 + eValue)
+```
+
+Таким образом, доверительный интервал для среднего: $123.80 \leq \mu \leq 134.20$.
+
+
+
+# Сравнение однородноти
+
+
+## 3 задача
+
+Загрузим данные и параметры:
+
+```{r t3Params}
+nS <- 20
+sMean <- 520
+sSd <- 65
+confProb <- 0.1
+meanScore <- 500
+```
+
+Проверим гипотезу о meanScore = 500.
+
+```{r t3Hyp}
+tScore <- (sMean - meanScore) / (sSd / sqrt(nS))
+print(tScore)
+df <- nS - 1
+tCrit <- qt(confProb/2, df, lower.tail = FALSE, log.p = FALSE)
+print(tCrit)
+```
+
+Так как tScore < tCrit, то принимается нулевая гипотеза meanScore = 500.
+
+
+## 4 задача
+
+Загрузим данные и параметры:
+
+```{r t4Params}
+nS <- 100
+pBase <- 0.95
+pSamp <- 0.92
+confProb <- 0.01
+```
+
+Проверим гипотезу о pBase = pSamp:
+
+```{r t4Hyp}
+pMean <- (0.95 + 0.92) / 2
+zScore <- (pBase - pSamp) / sqrt(2 * pMean * (1 - pMean) / 100)
+print(zScore)
+zCrit <- qnorm(confProb/2, lower.tail = FALSE, log.p = FALSE)
+print(zCrit)
+```
+
+Так как zScore < zCrit, то принимается нулевая гипотеза pBase = pSamp.
