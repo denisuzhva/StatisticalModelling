@@ -1,0 +1,151 @@
+---
+author: "Денис Ужва"
+title: "Практика 6 (Классификация без обучения)"
+output: html_document
+---
+
+
+
+
+# Подготовка данных
+
+```{r loadKnitr, echo=FALSE}
+library(knitr)
+```
+
+Загрузим данные об американских городах для анализа:
+
+```{r loadData}
+cities <- read.csv('./data.csv', sep=',', row.names=NULL)
+data <- data.frame(A=cities$asian,
+  B=cities$black,
+  Tp=cities$temper,
+  C=cities$cross,
+  P=cities$precep,
+  Tr=cities$transp,
+  D=cities$degree)
+
+row.names(data) <- cities$city
+
+kable(data, caption="Статистические данные об американских городах",label="tab:cities")
+```
+
+
+# Основной алгоритм метода главных компонент
+
+Нормируем и центрируем данные, вычисляем корреляционную матрицу.
+
+```{r corMat}
+data.0 <- apply(data, 2, function(x)(x-mean(x))/sd(x))
+Sigma <- cov(data.0)
+kable(Sigma, digits=3, caption="Корреляционная матрица.")
+```
+
+Вычисляем собственные числа ковариационной матрицы и собственные векторы. Поскольку данные нормированы и центрированы, то ковариационная матрица совпадает с корреляционной.
+
+```{r eigenVect}
+ei <- eigen(Sigma)
+df <- data.frame('С.Ч'=ei$values, 'Процент'=cumsum(ei$values)/sum(ei$values)*100,
+row.names = as.character(seq(dim(Sigma)[1])))
+kable(df, caption="Собственные числа и суммарный вклад компонент в общую дисперсию.")
+kable(data.frame(ei$vectors), digits=3, caption="Собственные векторы.")
+```
+
+Убедимся в том, что сумма собственных чисел совпадает с суммарной дисперсий нормированных признаков.
+
+```{r eigSum}
+c(sum(ei$values),sum(diag(cov(data.0))))
+```
+
+Наконец, вычислим главные компоненты:
+
+```{r princComp}
+Scores <- data.0 %*% ei$vectors
+```
+
+Проверяем, действительно ли дисперсии главных компонент совпадают с собственными числами корреляционной матрицы:
+
+```{r pcDispEigCompar}
+apply(Scores, 2, var)
+ei$values
+```
+
+Вычислим факторы (нормированные главные компоненты):
+
+```{r factors}
+factors <- apply(Scores, 2, function(x)x/sd(x))
+kable(data.frame(factors), digits=3, caption="Значения факторов")
+```
+
+Вычислим факторные нагрузки как коэффициенты корреляции между признаками и факторами:
+
+```{r factL}
+Matr <- apply(Scores, 2, function(y)apply(data.0, 2, function(x)cor(x, y)))
+kable(data.frame(Matr), caption="Матрица факторных нагрузок")
+```
+
+
+# Функция в R для факторного анализа
+
+Сравним полученные результаты со встроенной в R:
+
+```{r pcaR}
+data.0 <- scale(data)
+pc <- prcomp(data.0)
+kable(data.frame(lambda=pc$sdev^2, EI=ei$values), digits=3, caption="Дисперсии главных компонент, вычисленные разными методами")
+kable(pc$rotation[,seq(2)], digits=3, caption="Матрица собственных векторов из prcomp.")
+kable(data.frame(ei$vectors[,seq(2)]), digits=3, caption="Матрица собственных векторов ковариационной матрицы.")
+kable(pc$x[,seq(2)], digits=3, caption="Значения главных компонент из prcomp.")
+kable(data.frame(Scores[,seq(2)]), digits=3, caption="Значения главных компонент из преобразования при помощи с.в.")
+```
+
+Чтобы получить факторные нагрузки, нужно элементы собственных векторов умножить на корень из соответствующего собственного числа.
+
+```{r factLR}
+MatrPC <- apply(rbind(pc$rotation[,seq(2)], pc$sdev[seq(2)]), 2, function(x)x[-length(x)]*x[length(x)])
+kable(MatrPC, caption="Вычисление факторных нагрузок")
+```
+
+
+# Восстановление переменных по первым двум факторам
+
+Для восстановления данных по главным компонентам используем формулу произведения матрицы факторных нагрузок на значения факторов.
+
+```{r dataRestore}
+sigma2 <- apply(data, 2, var)
+Rest <- function(k, sigma2, Matr, factors, data) {
+  XX <- Matr[,seq(k)]%*%t(factors[,seq(k)])
+  XX.1 <- apply(cbind(XX, sqrt(sigma2)), 1, function(x)x[-length(x)]*x[length(x)])
+  XX.2 <- apply(rbind(XX.1, colMeans(data)), 2, function(x)x[-length(x)]+x[length(x)])
+  return(XX.2)
+}
+
+plot(data[,1], type="b")
+lines(Rest(2, sigma2, Matr, factors, data)[,1], lty=2, col=2)
+```
+
+
+# Кластерный анализ
+
+Построим матрицы расстояний с различными метриками и соответствующие дендограммы:
+
+```{r loadCluster, echo=FALSE}
+library(cluster)
+```
+
+```{r dend}
+dist <- daisy(data.0,metric="manhattan");dist
+h <- hclust(dist, method="average")
+plot(h)
+
+dist.T <- daisy(t(data.0), metric="euclidean")
+h <- hclust(dist, method="ward.D")
+plot(h)
+```
+
+Поскольку изначально данные разделены на 3 кластера, можно воспользоваться методом K-means для нахождения этих клатеров 
+
+```{r kmeans}
+km<-kmeans(data.0, 3)
+km
+```

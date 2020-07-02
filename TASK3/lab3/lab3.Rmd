@@ -104,11 +104,10 @@ confProb <- 0.01
 Проверим гипотезу о pBase = pSamp:
 
 ```{r t4Hyp}
-pMean <- (0.95 + 0.92) / 2
-zScore <- (pBase - pSamp) / sqrt(2 * pMean * (1 - pMean) / 100)
+zScore <- (pSamp - pBase) / sqrt(pSamp * (1 - pSamp) / nS)
 print(zScore)
 zCrit <- qnorm(confProb/2, lower.tail = FALSE, log.p = FALSE)
 print(zCrit)
 ```
 
-Так как zScore < zCrit, то принимается нулевая гипотеза pBase = pSamp.
+Так как zScore находится вне критической области, то есть принадлежит промежутку (-zCrit, zCrit) = $(-2.58, 2.58)$, то принимается нулевая гипотеза pBase = pSamp.

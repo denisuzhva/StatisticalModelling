@@ -1,0 +1,119 @@
+---
+author: "Денис Ужва"
+title: "Практика 4 (корреляция)"
+output: html_document
+---
+
+
+
+
+# Моделирование нелинейной модели
+
+Рассмотрим модель $y_i = a \cos x_i + b + \delta_i$, где $\delta_i \sim \mathcal{N}(0, \sigma)$ -- нормально распределённая ошибка с дисперсией $\varepsilon$.
+
+```{r initModels}
+N <- 100
+
+f <- function(x, ab) ab[1]*cos(x) + ab[2]
+L <- function(X, Y, ab) sum((Y-f(X,ab))^2)
+
+f0 <- function(x, AB) AB[1] + AB[2]*x
+L0 <- function(X, Y, AB) sum((Y-f0(X,AB))^2)
+```
+
+Задаём параметры $a = 0.4, \ b = 1, \ \varepsilon = 0.05$ и моделируем данные:
+
+```{r modeling}
+ab <- c(0.4, 1)
+eps <- 0.05
+
+X <- rnorm(N)
+Y <- f(X, ab) + rnorm(N, 0, eps)
+```
+
+
+# Оценка параметров
+
+Оценим параметры нелинейной модели по методу наименьших квадратов:
+
+```{r estNLM}
+NLM <- nlm(function(ab)L(X, Y, ab), c(1,1))
+SNLM <- summary(NLM)
+ab. <- NLM$estimate
+cbind(ab.=ab., ab=ab)
+```
+
+Здесь "ab." означает оценку параметров $\hat{a}$ и $\hat{b}$. 
+
+Оценим параметры линейной модели по методу наименьших квадратов:
+
+```{r estLM}
+LM <- lm(Y~X)
+SLM <- summary(LM)
+AB. <- SLM$coefficients[,1]
+cbind(AB.=AB.)
+```
+
+Получили оценки $\hat{\alpha}$ и $\hat{\beta}$ соответственно для наилучшего линейного прогноза $\hat{y}_i = \hat{\alpha} + \hat{\beta}x_i$.
+
+Построим на двумерной диаграмме кривые линейной и нелинейной моделей, а также модельные данные:
+
+```{r plotModel}
+plot(X,Y)
+pl <- function(x)f(x, ab); curve(pl, -3, 3, add=TRUE, col=2)
+pl <- function(x)f(x, ab.); curve(pl, -3, 3, add=TRUE, col=3)
+pl <- function(x)f0(x, AB.); curve(pl, -3, 3, add=TRUE, col=4, lty=2)
+legend('topleft', c('nonlin', 'LSE', 'linear'), pch=20, col=c(2, 3, 4))
+```
+
+Найдём невязки.
+
+```{r lossVal}
+c(Q.linear=L0(X, Y, AB.), Q.model=L(X, Y, ab), Q.model.hat=L(X, Y, ab.))
+```
+
+
+# Дисперсионный анализ
+
+Найдём величины источников вариации $Q_T$ (общий), $Q_R$ (обусловленный регрессией) и $Q_E$ (невязка); затем вычислим коэффициент детерминации $R^2$.
+
+```{r qVals}
+Y. <- f0(X, AB.)
+
+QT <- sum((Y - mean(Y))^2)
+QT
+QR <- sum((Y. - mean(Y))^2)
+QR
+QE <- sum((Y - Y.)^2)
+QE
+R2 <- QR / QT
+R2
+```
+
+Найдём значимость прогноза и коэффициентов регрессии:
+
+```{r regCoef}
+xx <- sum((X - mean(X))^2)
+S2 <- QE / (N - 2)
+S2a <- S2 * sum(X^2) / N / xx
+S2b <- S2 / xx
+
+F. <- QR / QT * (N - 2)
+F.
+Pf <- 1 - pf(F., 2, N - 2)
+Ta <- AB.[1] / sqrt(S2a)
+Tb <- AB.[2] / sqrt(S2b)
+Pa <- 2 * (1 - pt(abs(Ta), N - 2))
+Pb <- 2 * (1 - pt(abs(Tb), N - 2))
+```
+
+Сравним полученные значения с результатом встроенной функции.
+
+```{r comparison}
+c(R2, SLM$r.squared)
+df <- SLM$df[seq(2)]
+Pf.lm <- 1 - pf(SLM$fstatistic[1], df[1], df[2])
+cbind(c(Pf=Pf, Pa=Pa, Pb=Pb), c(Pf=Pf.lm, SLM$coefficients[,4]))
+```
+
+Видно, что значения из встроенной функции близки в вычисленным вручную.

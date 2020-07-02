@@ -12,7 +12,7 @@
 <meta name="author" content="Денис Ужва" />
 
 
-<title>Практика 3 (доверительные интервалы и сравнение однородности)</title>
+<title>Практика 7 (Классификация с обучением)</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -375,92 +375,118 @@ summary {
 
 
 
-<h1 class="title toc-ignore">Практика 3 (доверительные интервалы и сравнение однородности)</h1>
+<h1 class="title toc-ignore">Практика 7 (Классификация с обучением)</h1>
 <h4 class="author">Денис Ужва</h4>
 
 </div>
 
 
-<div id="доверительные-интервалы" class="section level1">
-<h1>Доверительные интервалы</h1>
-<div id="задача" class="section level2">
-<h2>1 задача</h2>
-<p>Загрузим данные и параметры:</p>
-<pre class="r"><code>nS &lt;- 2000
-p1 &lt;- 0.36
-p2 &lt;- 1 - p1
-confProb &lt;- 0.95</code></pre>
-<p>Найдём соответствующий доверительный интервал для доли <span class="math inline">\(p_1\)</span>:</p>
-<pre class="r"><code>zCrit &lt;- qnorm((1-confProb)/2, lower.tail = FALSE, log.p = FALSE)
-print(zCrit)</code></pre>
-<pre><code>## [1] 1.959964</code></pre>
-<pre class="r"><code>eValue &lt;- zCrit * sqrt((p1*p2)/nS)
-print(eValue)</code></pre>
-<pre><code>## [1] 0.02103654</code></pre>
-<pre class="r"><code>print(p1 - eValue)</code></pre>
-<pre><code>## [1] 0.3389635</code></pre>
-<pre class="r"><code>print(p1 + eValue)</code></pre>
-<pre><code>## [1] 0.3810365</code></pre>
-<p>Таким образом, доверительный интервал для доли <span class="math inline">\(p_1\)</span> следующий: <span class="math inline">\(p_1 - E \leq p_1 \leq p_1 + E \implies 0.34 \leq p_1 \leq 0.38\)</span>.</p>
+<div id="подготовка-данных" class="section level1">
+<h1>Подготовка данных</h1>
+<pre><code>## Loading required package: MASS</code></pre>
+<p>Загрузим данные:</p>
+<pre class="r"><code>data &lt;- read.csv(&quot;./data_big.csv&quot;)
+df &lt;- na.omit(data.frame(insomia=as.factor(ifelse(data$insomia.1 &lt;= 1, 0, 1)), scale(data[, c(23:30)])))</code></pre>
+<p>Исследуем зависимость между фактором “Бессонница” и кардиологическими данными.</p>
 </div>
-<div id="задача-1" class="section level2">
-<h2>2 задача</h2>
-<p>Загрузим данные и параметры:</p>
-<pre class="r"><code>sampSet &lt;- c(124, 124, 145, 132, 123, 124, 122, 141, 133, 122)
-nS &lt;- length(sampSet)
-confProb &lt;- 0.95</code></pre>
-<p>Найдём доверительный интервал для среднего:</p>
-<pre class="r"><code>zCrit &lt;- qnorm((1-confProb)/2, lower.tail = FALSE, log.p = FALSE)
-print(zCrit)</code></pre>
-<pre><code>## [1] 1.959964</code></pre>
-<pre class="r"><code>xA1 &lt;- mean(sampSet)
-xSem &lt;- sd(sampSet) / sqrt(nS)
-eValue &lt;- zCrit * xSem
-print(eValue)</code></pre>
-<pre><code>## [1] 5.202013</code></pre>
-<pre class="r"><code>print(xA1 - eValue)</code></pre>
-<pre><code>## [1] 123.798</code></pre>
-<pre class="r"><code>print(xA1 + eValue)</code></pre>
-<pre><code>## [1] 134.202</code></pre>
-<p>Таким образом, доверительный интервал для среднего: <span class="math inline">\(123.80 \leq \mu \leq 134.20\)</span>.</p>
+<div id="дискриминантный-анализ" class="section level1">
+<h1>Дискриминантный анализ</h1>
+<p>Найдём веса дискриминантной функции:</p>
+<pre class="r"><code>LDA &lt;- lda(insomia~., df)
+kable(data.frame(LDA$scaling), digits=3, caption = &quot;Веса дискриминантной функции&quot;)</code></pre>
+<table>
+<caption>Веса дискриминантной функции</caption>
+<thead>
+<tr class="header">
+<th></th>
+<th align="right">LD1</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>HR.1</td>
+<td align="right">-0.524</td>
+</tr>
+<tr class="even">
+<td>SBP.1</td>
+<td align="right">0.033</td>
+</tr>
+<tr class="odd">
+<td>DBP.1</td>
+<td align="right">-0.684</td>
+</tr>
+<tr class="even">
+<td>MBP.1</td>
+<td align="right">0.582</td>
+</tr>
+<tr class="odd">
+<td>SV.1</td>
+<td align="right">2.902</td>
+</tr>
+<tr class="even">
+<td>CO.1</td>
+<td align="right">-3.207</td>
+</tr>
+<tr class="odd">
+<td>SI.1</td>
+<td align="right">-3.095</td>
+</tr>
+<tr class="even">
+<td>CI.1</td>
+<td align="right">2.852</td>
+</tr>
+</tbody>
+</table>
+<p>Построим матрицу классификации:</p>
+<pre class="r"><code>table(insomia=df$insomia, Predict=predict(LDA, df)$class)</code></pre>
+<pre><code>##        Predict
+## insomia  0  1
+##       0 10  7
+##       1  3 13</code></pre>
+<p>Таким образом, два класса близки по объёму.</p>
 </div>
+<div id="дерево-решений" class="section level1">
+<h1>Дерево решений</h1>
+<p>Решим задачу классификации с помощью дерева решений. В качестве индекса неоднородности берётся индекс Джини.</p>
+<pre class="r"><code>i.tree &lt;- tree(insomia~., df, split = &quot;gini&quot;)
+P &lt;- predict(i.tree, df)
+Class &lt;- apply(P, 1, function(x)ifelse(x[1] &gt; x[2], 0, 1))
+table(insomia=df$insomia, Class)</code></pre>
+<pre><code>##        Class
+## insomia  0  1
+##       0  7 10
+##       1  0 16</code></pre>
+<pre class="r"><code>plot(i.tree)
+text(i.tree)</code></pre>
+<p><img src="data:image/png;base64,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BCjAJAEKMEmAAkwSoACTBCjAJAEKMEmAAkwSoACTBCjAJAEKMEmAAkwSoACTBCjAJAEKMEmAAkwSoACTBCjAJAEKMEmAAkwSoACTBCjAJAEKMEmAAkwSoACTBCjAJAEKMEmAAkwSoACTBCjAJAEKMEmAAkwSoACTBCjAJAEKMEmAAkwSoACTBCjAJAEKMEmAAkwSoACTBCjAJAEKMEmAAkwSoACTBCjAJAEKMEmAAkwSoACTBCjAJAEKMEmAAkwSoACTBCjAJAEKMEmAAkwSoACTBCjAJAEKMEmAAkwSoACTBCjAJAEKMEmAAkwSoACTBCjAJAEKMEmAAkwSoACTBCjAJAEKMEmAAkwSoACTBCjAJAEKMEmAAkwSoACTBCjAJAEKMEmAAkwSoACTBCjAJAEKMEmAAkwSoACTBCjAJAEKMEmAAkwSoACTBCjAJAEKMEmAAkwSoACTBCjAJAEKMEmAAkwSoACTBCjAJAEKMEmAAkwSoACTBCjAJAEKMEmAAkwSoACTBCjAJAEKMEmAAkwSoACTBCjAJAEKMEmAAkwSoACTBCjAJAEKMEmAAkwSoACTBCjAJAEKMEmAAkwSoACTBCjAJAEKMEmAAkwSoACTBCjAJAEKMEmAAkwSoACTBCjAJAEKMEmAAkwSoACTBCjAJAEKMEmAAkwSoACTBCjAJAEKMEmAAkwSoACT/j/KYbBruF2vuwAAAABJRU5ErkJggg==" width="672" /></p>
 </div>
-<div id="сравнение-однородноти" class="section level1">
-<h1>Сравнение однородноти</h1>
-<div id="задача-2" class="section level2">
-<h2>3 задача</h2>
-<p>Загрузим данные и параметры:</p>
-<pre class="r"><code>nS &lt;- 20
-sMean &lt;- 520
-sSd &lt;- 65
-confProb &lt;- 0.1
-meanScore &lt;- 500</code></pre>
-<p>Проверим гипотезу о meanScore = 500.</p>
-<pre class="r"><code>tScore &lt;- (sMean - meanScore) / (sSd / sqrt(nS))
-print(tScore)</code></pre>
-<pre><code>## [1] 1.376042</code></pre>
-<pre class="r"><code>df &lt;- nS - 1
-tCrit &lt;- qt(confProb/2, df, lower.tail = FALSE, log.p = FALSE)
-print(tCrit)</code></pre>
-<pre><code>## [1] 1.729133</code></pre>
-<p>Так как tScore &lt; tCrit, то принимается нулевая гипотеза meanScore = 500.</p>
+<div id="случайный-лес" class="section level1">
+<h1>Случайный лес</h1>
+<p>Решим задачу классификации с помощью рандомного леса.</p>
+<pre><code>## randomForest 4.6-14</code></pre>
+<pre><code>## Type rfNews() to see new features/changes/bug fixes.</code></pre>
+<pre class="r"><code>i.rf &lt;- randomForest(insomia~., df)
+i.rfp &lt;- predict(i.rf, df)
+table(insomia=df$insomia, Predict=i.rfp)</code></pre>
+<pre><code>##        Predict
+## insomia  0  1
+##       0 17  0
+##       1  0 16</code></pre>
+<p>Видно, что случайный лес демонстрирует наивысшую точность на текущий момент, поскольку всюду точно угадал класс.</p>
 </div>
-<div id="задача-3" class="section level2">
-<h2>4 задача</h2>
-<p>Загрузим данные и параметры:</p>
-<pre class="r"><code>nS &lt;- 100
-pBase &lt;- 0.95
-pSamp &lt;- 0.92
-confProb &lt;- 0.01</code></pre>
-<p>Проверим гипотезу о pBase = pSamp:</p>
-<pre class="r"><code>zScore &lt;- (pSamp - pBase) / sqrt(pSamp * (1 - pSamp) / nS)
-print(zScore)</code></pre>
-<pre><code>## [1] -1.105815</code></pre>
-<pre class="r"><code>zCrit &lt;- qnorm(confProb/2, lower.tail = FALSE, log.p = FALSE)
-print(zCrit)</code></pre>
-<pre><code>## [1] 2.575829</code></pre>
-<p>Так как zScore находится вне критической области, то есть принадлежит промежутку (-zCrit, zCrit) = <span class="math inline">\((-2.58, 2.58)\)</span>, то принимается нулевая гипотеза pBase = pSamp.</p>
+<div id="метод-опорных-векторов" class="section level1">
+<h1>Метод опорных векторов</h1>
+<pre class="r"><code>i.svm &lt;- svm(insomia~., df)
+i.svmp &lt;- predict(i.svm, df)
+table(insomia=df$insomia, Predict=i.svmp)</code></pre>
+<pre><code>##        Predict
+## insomia  0  1
+##       0 15  2
+##       1  5 11</code></pre>
 </div>
+<div id="итог" class="section level1">
+<h1>Итог</h1>
+<p>Среди всех классификатором наилучшую точность продемонстрировал метод случайного леса.</p>
 </div>
 
 

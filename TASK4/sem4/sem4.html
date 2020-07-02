@@ -400,17 +400,20 @@ dfk</code></pre>
 <pre><code>## [1] 2</code></pre>
 <pre class="r"><code>dfn</code></pre>
 <pre><code>## [1] 11</code></pre>
-<p>Таким образом, следуя таблице А-5, критическое значение F-критерия равно 3.98. Теперь посчитаем сам критерий.</p>
+<pre class="r"><code>fCrit &lt;- qf(confProb, df1=dfk, df2=dfn)
+fCrit</code></pre>
+<pre><code>## [1] 3.982298</code></pre>
+<p>Таким образом, критическое значение F-критерия равно 3.98. Теперь посчитаем сам критерий.</p>
 <pre class="r"><code>xL &lt;- c(mean(di1), mean(di2), mean(di3))
 xLL &lt;- mean(xL)
 ssB &lt;- sum(n * (xL - xLL)^2)
 ssW &lt;- sum((di1 - xL[1])^2) + sum((di2 - xL[2])^2) + sum((di3 - xL[3])^3)
 msB &lt;- ssB / dfk
 msW &lt;- ssW / dfn
-fCrit &lt;- msB / msW
-fCrit</code></pre>
+fEst &lt;- msB / msW
+fEst</code></pre>
 <pre><code>## [1] 7.703992</code></pre>
-<p>Полученное значение 7.7 больше критического (на уровне значимости <span class="math inline">\(\alpha = 0.05\)</span>), поэтому гипотеза о равенстве средних трёх выборок отвергается и принимается альтернативная.</p>
+<p>Полученное значение 7.70 больше критического 3.98 (на уровне значимости <span class="math inline">\(\alpha = 0.05\)</span>), поэтому гипотеза о равенстве средних трёх выборок отвергается и принимается альтернативная.</p>
 </div>
 <div id="задача-4.1-4" class="section level2">
 <h2>Задача 4.1-4</h2>
@@ -422,7 +425,8 @@ b2 &lt;- c(83, 85, 91)
 ssA &lt;- 816.750
 ssB &lt;- 102.083
 ssAB &lt;- 444.083
-ssErr &lt;- 108</code></pre>
+ssErr &lt;- 108
+confProb &lt;- 1-0.05</code></pre>
 <p>Рассчитаем df</p>
 <pre class="r"><code>A &lt;- 2
 B &lt;- 2
@@ -439,7 +443,16 @@ dfA</code></pre>
 <pre><code>## [1] 1</code></pre>
 <pre class="r"><code>dfD</code></pre>
 <pre><code>## [1] 8</code></pre>
-<p>Таким образом, критические значения FA, FB и FAB равны 5.32, следуя таблице А-5. Поскольку значения <span class="math inline">\(SS_A\)</span>, <span class="math inline">\(SS_B\)</span>, <span class="math inline">\(SS_{A \times B}\)</span> и <span class="math inline">\(SS_\textrm{within}\)</span> известны, можно посчитать значения критериев.</p>
+<pre class="r"><code>fCritA &lt;- qf(confProb, dfA, dfD)
+fCritB &lt;- qf(confProb, dfB, dfD)
+fCritAB &lt;- qf(confProb, dfAB, dfD)
+fCritA</code></pre>
+<pre><code>## [1] 5.317655</code></pre>
+<pre class="r"><code>fCritB</code></pre>
+<pre><code>## [1] 5.317655</code></pre>
+<pre class="r"><code>fCritAB</code></pre>
+<pre><code>## [1] 5.317655</code></pre>
+<p>Таким образом, критические значения FA, FB и FAB равны 5.32. Поскольку значения <span class="math inline">\(SS_A\)</span>, <span class="math inline">\(SS_B\)</span>, <span class="math inline">\(SS_{A \times B}\)</span> и <span class="math inline">\(SS_\textrm{within}\)</span> известны, можно посчитать значения критериев.</p>
 <pre class="r"><code>msA &lt;- ssA / dfA
 msB &lt;- ssB / dfB
 msAB &lt;- ssAB / dfAB
@@ -462,17 +475,15 @@ fA</code></pre>
 meanProp &lt;- 325
 confProb &lt;- 1 - 0.05</code></pre>
 <p>Проверяем гипотезу о среднем:</p>
-<pre class="r"><code>diffs &lt;- samp - meanProp
-zeros &lt;- sum(diffs == 0)
-neg &lt;- sum(diffs &lt; 0)
-pos &lt;- sum(diffs &gt; 0)
-n &lt;- length(samp) - zeros
-x = min(c(pos, neg))
-n</code></pre>
-<pre><code>## [1] 12</code></pre>
-<pre class="r"><code>x</code></pre>
-<pre><code>## [1] 3</code></pre>
-<p>Для <span class="math inline">\(n = 12\)</span> критическое значение равно 2. Так как у нас <span class="math inline">\(x = 3\)</span>, то можно сделать вывод, что оснований для опровержения заявления агента о среднем недостаточно (на уровне значимости <span class="math inline">\(\alpha = 0.05\)</span>).</p>
+<pre class="r"><code>meanArr &lt;- rep(meanProp, length(samp))
+wilcox.test(samp, meanArr, paired=TRUE)</code></pre>
+<pre><code>## 
+##  Wilcoxon signed rank test
+## 
+## data:  samp and meanArr
+## V = 72, p-value = 0.006836
+## alternative hypothesis: true location shift is not equal to 0</code></pre>
+<p>Поскольку полученное p-value меньше уровня значимости <span class="math inline">\(\alpha = 0.05\)</span>, можно сделать вывод, что на этом уровне значимости нулевая гипотеза отвергается, то бишь заявление агента о среднем опровергнуто.</p>
 </div>
 <div id="задача-4.2-7" class="section level2">
 <h2>Задача 4.2-7</h2>

@@ -1,0 +1,97 @@
+---
+author: "Денис Ужва"
+title: "Практика 7 (Классификация с обучением)"
+output: html_document
+---
+
+
+
+
+# Подготовка данных
+
+```{r loadKnitrKlarl, echo=FALSE}
+library(knitr)
+library(klaR)
+```
+
+Загрузим данные:
+
+```{r loadData}
+data <- read.csv("./data_big.csv")
+df <- na.omit(data.frame(insomia=as.factor(ifelse(data$insomia.1 <= 1, 0, 1)), scale(data[, c(23:30)])))
+```
+
+Исследуем зависимость между фактором "Бессонница" и кардиологическими данными.
+
+
+# Дискриминантный анализ
+
+Найдём веса дискриминантной функции:
+
+```{r lda}
+LDA <- lda(insomia~., df)
+kable(data.frame(LDA$scaling), digits=3, caption = "Веса дискриминантной функции")
+```
+
+Построим матрицу классификации:
+
+```{r classMat}
+table(insomia=df$insomia, Predict=predict(LDA, df)$class)
+```
+
+Таким образом, два класса близки по объёму.
+
+
+# Дерево решений
+
+Решим задачу классификации с помощью дерева решений.
+В качестве индекса неоднородности берётся индекс Джини.
+
+```{r loadTree, echo=FALSE}
+library(tree)
+```
+
+```{r treeSolve}
+i.tree <- tree(insomia~., df, split = "gini")
+P <- predict(i.tree, df)
+Class <- apply(P, 1, function(x)ifelse(x[1] > x[2], 0, 1))
+table(insomia=df$insomia, Class)
+
+plot(i.tree)
+text(i.tree)
+```
+
+
+# Случайный лес
+
+Решим задачу классификации с помощью рандомного леса.
+
+```{r loadRandFor, echo=FALSE}
+library(randomForest)
+```
+
+```{r forestSolve}
+i.rf <- randomForest(insomia~., df)
+i.rfp <- predict(i.rf, df)
+table(insomia=df$insomia, Predict=i.rfp)
+```
+
+Видно, что случайный лес демонстрирует наивысшую точность на текущий момент, поскольку всюду точно угадал класс.
+
+
+# Метод опорных векторов
+
+```{r loadSVM, echo=FALSE}
+library(e1071)
+```
+
+```{r svmSolve}
+i.svm <- svm(insomia~., df)
+i.svmp <- predict(i.svm, df)
+table(insomia=df$insomia, Predict=i.svmp)
+```
+
+
+# Итог
+
+Среди всех классификатором наилучшую точность продемонстрировал метод случайного леса.
